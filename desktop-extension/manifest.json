@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "CSC Smart Form Filler",
+  "version": "0.1.0",
+  "description": "Review candidate details and fill supported form fields only after operator confirmation.",
+  "permissions": ["activeTab", "scripting"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "CSC Smart Form Filler"
+  }
+}
