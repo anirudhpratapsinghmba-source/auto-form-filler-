@@ -6,36 +6,41 @@
 - [x] Room persistence
 - [x] Android Keystore AES-GCM encryption for profile payloads
 - [x] GitHub Actions debug build workflow
-- [ ] Confirm successful CI build and test on a physical Android device
 
-## Milestone 2 — Document scanner and OCR
-- [ ] CameraX capture
-- [ ] Crop and rotate image
-- [ ] On-device ML Kit text recognition
-- [ ] Candidate field extraction
-- [ ] User review and correction before saving
-- [ ] Delete temporary image by default
+## Milestone 2 — Android document import and review
+- [x] Pick document image using Android system photo picker
+- [x] On-device ML Kit OCR for Latin and Devanagari
+- [x] Editable review screen before saving candidate details
+- [x] Show extracted source text to support manual verification
+- [ ] CameraX live capture, crop, rotate, and document quality guidance
+- [ ] Better document-type-specific extraction and confidence indicators
+- [ ] Secure temporary image lifecycle and explicit document retention controls
 
-## Milestone 3 — Smart Keyboard
+## Milestone 3 — Desktop Chrome extension MVP
+- [x] Manifest V3 extension scaffold
+- [x] Scan visible standard fields on the active tab
+- [x] Candidate value review in popup before filling
+- [x] Explicit operator click required to fill
+- [x] Exclude password, hidden, file, and submit controls
+- [ ] Better label/placeholder and Hindi field mapping
+- [ ] Portal-specific adapters with compatibility tests
+- [ ] Secure Android-to-desktop candidate transfer, designed separately
+
+## Milestone 4 — Android Smart Keyboard
 - [ ] Android InputMethodService and keyboard settings entry
 - [ ] QWERTY, numeric, email, and phone layouts
-- [ ] Profile picker and explicit field insertion
-- [ ] Use InputConnection.commitText(); do not use clipboard as the primary insertion mechanism
-- [ ] Backspace, cursor, multiline, and keyboard switching
-- [ ] Never record keystrokes or typed-text history
+- [ ] Candidate picker and explicit field insertion using InputConnection.commitText()
+- [ ] No clipboard dependency and no keystroke logging
 
-## Milestone 4 — Context-aware suggestions
-- [ ] Use EditorInfo input type and available field hints
-- [ ] User-confirmed field mappings
-- [ ] Avoid guessing when confidence is low
-- [ ] Manual confirmation before sensitive field insertion
+## Milestone 5 — CSC operator product hardening
+- [ ] Multi-candidate workflow and candidate search
+- [ ] Photo/signature/document attachment management
+- [ ] Field-level source traceability and OCR confidence
+- [ ] Operator audit trail without recording sensitive typed content
+- [ ] Local backup/export with encryption and consent
+- [ ] Accessibility, usability, security, and portal compatibility testing
 
-## Milestone 5 — Compatibility and hardening
-- [ ] Test standard Android fields, Chrome Android, and supported WebViews
-- [ ] Test offline operation, encrypted persistence, and key invalidation handling
-- [ ] Test unsupported/custom fields and keyboard fallback
-- [ ] Review backup, logging, and privacy behavior
-
-## Milestone 6 — Future desktop support
-- [ ] Chrome extension
-- [ ] Optional, opt-in cloud sync only after a separate security review
+## Guardrails
+- CAPTCHA, OTP, login, and portal security checks remain manual.
+- Never auto-submit forms or claim universal portal compatibility.
+- Candidate data is personal information: collect only what is necessary, obtain consent, restrict access, and define retention/deletion procedures.
