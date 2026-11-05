@@ -1,39 +1,41 @@
 # Development roadmap
 
-## Milestone 1 — Android foundation (started)
-- [x] Native Kotlin Android project structure
-- [x] Jetpack Compose dashboard shell
-- [x] Profile list UI and add-profile interaction (in-memory prototype only)
-- [ ] Build and run on Android Studio/device
+## Milestone 1 — Android foundation and local profiles
+- [x] Kotlin + Jetpack Compose Android app shell
+- [x] Multiple local profiles with create/edit/delete
+- [x] Room persistence
+- [x] Android Keystore AES-GCM encryption for profile payloads
+- [x] GitHub Actions debug build workflow
+- [ ] Confirm successful CI build and test on a physical Android device
 
-## Milestone 2 — Secure profile storage
-- [ ] Define profile and field models
-- [ ] Encrypt sensitive values with Android Keystore-backed AES-GCM
-- [ ] Persist encrypted records with Room
-- [ ] Add edit, delete, search, and profile selection
-- [ ] Add explicit consent before inserting sensitive identifiers
-
-## Milestone 3 — Document scanner
-- [ ] CameraX capture and crop/rotate
-- [ ] ML Kit Text Recognition
+## Milestone 2 — Document scanner and OCR
+- [ ] CameraX capture
+- [ ] Crop and rotate image
+- [ ] On-device ML Kit text recognition
 - [ ] Candidate field extraction
-- [ ] Review/correct screen before saving
-- [ ] Delete temporary images by default
+- [ ] User review and correction before saving
+- [ ] Delete temporary image by default
 
-## Milestone 4 — Smart keyboard
-- [ ] Implement Android InputMethodService
-- [ ] QWERTY, number, email, and phone layouts
-- [ ] Read safe field hints from EditorInfo
-- [ ] Insert user-selected text through InputConnection.commitText()
-- [ ] Never log typed content or capture passwords, OTPs, or payment data
+## Milestone 3 — Smart Keyboard
+- [ ] Android InputMethodService and keyboard settings entry
+- [ ] QWERTY, numeric, email, and phone layouts
+- [ ] Profile picker and explicit field insertion
+- [ ] Use InputConnection.commitText(); do not use clipboard as the primary insertion mechanism
+- [ ] Backspace, cursor, multiline, and keyboard switching
+- [ ] Never record keystrokes or typed-text history
 
-## Milestone 5 — Website autofill and compatibility
-- [ ] Support only permitted, technically compatible form fields
-- [ ] Test on Chrome Android and selected portals
-- [ ] Provide manual field mapping when field detection is uncertain
-- [ ] Keep CAPTCHA, OTP, login, and security checks manual
-- [ ] Never auto-submit a form
+## Milestone 4 — Context-aware suggestions
+- [ ] Use EditorInfo input type and available field hints
+- [ ] User-confirmed field mappings
+- [ ] Avoid guessing when confidence is low
+- [ ] Manual confirmation before sensitive field insertion
 
-## Later
+## Milestone 5 — Compatibility and hardening
+- [ ] Test standard Android fields, Chrome Android, and supported WebViews
+- [ ] Test offline operation, encrypted persistence, and key invalidation handling
+- [ ] Test unsupported/custom fields and keyboard fallback
+- [ ] Review backup, logging, and privacy behavior
+
+## Milestone 6 — Future desktop support
 - [ ] Chrome extension
-- [ ] Optional encrypted cloud sync (only after explicit product decision)
+- [ ] Optional, opt-in cloud sync only after a separate security review
