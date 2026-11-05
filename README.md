@@ -1,40 +1,41 @@
-# Auto Form Filler
+# CSC Smart Form Filler
 
-Android-first smart form filling app. Create reusable local profiles now; document scanning and a custom Android keyboard are planned next.
+A privacy-first assisted form-filling project for CSC operators. The existing Android app remains in place and this repository now contains the first desktop Chrome extension scaffold.
 
-## Current implementation
+## Product direction
 
-- Native Kotlin + Jetpack Compose + Material 3 Android app.
-- Multiple profile creation, editing, listing, and deletion.
-- Room database for persistent on-device profile records.
-- Profile fields: profile name, full name, date of birth, father's name, mobile, email, and address.
-- AES-256-GCM encryption using a non-exportable Android Keystore key. Room stores encrypted profile payloads, not plaintext field values.
-- GitHub Actions workflow builds the debug APK on pushes and pull requests.
+- Android companion: import a document image, extract text on-device, review/edit candidate details, and save an encrypted local profile.
+- Desktop Chrome extension: inspect visible fields on the current tab, let the operator review candidate values, and fill only safely matched standard fields after an explicit click.
+- Future: document categories, richer field extraction, photo/signature handling, portal-specific mappings, Android keyboard insertion, and an optional secure local bridge between Android and desktop.
 
-## Planned next
+## Android status
 
-1. CameraX document capture and on-device ML Kit OCR, with manual review before saving.
-2. Android Smart Keyboard using InputMethodService and InputConnection.commitText().
-3. Context-aware field suggestions and compatibility testing across supported forms.
-4. Optional browser extension in a later phase.
+- Multiple encrypted local candidate profiles.
+- Document image selection using Android's system photo picker.
+- On-device ML Kit OCR for Latin and Devanagari scripts.
+- Editable review fields before saving a candidate.
+- OCR is assistive, not authoritative; verify against the source document.
+
+## Desktop extension status
+
+Load the `desktop-extension/` folder as an unpacked extension in Chrome at `chrome://extensions` with Developer mode enabled.
+
+1. Open a supported form page.
+2. Click the extension and choose **Detect form fields**.
+3. Enter or review the candidate values in the popup.
+4. Click **Fill reviewed fields** and verify every value on the page.
+
+The first extension version uses Chrome's `activeTab` permission, does not request broad host access, excludes password/hidden/file/submit controls, and never submits a form. It matches common field labels heuristically, so it will not work on every portal or custom widget. CAPTCHA, OTP, sign-in, and portal security controls remain manual.
 
 ## Privacy and safety
 
-- Initial release is local-only; no cloud sync, analytics, or profile upload.
-- Do not store passwords, OTPs, or payment credentials.
-- CAPTCHA, OTP, sign-in, and other portal security checks remain manual.
-- Never auto-submit a form.
-- OCR results must be reviewed by the user before saving.
-- Aadhaar/PAN or other highly sensitive identifiers should be optional, separately consented, and never automatically suggested.
+- Candidate information stays on the Android device or in the extension popup session in this first version.
+- No cloud sync, analytics, or remote profile transfer.
+- Do not store passwords, OTPs, payment credentials, or authentication secrets.
+- Highly sensitive identifiers such as Aadhaar/PAN require separate product, consent, legal, and security review before support is added.
+- Never bypass CAPTCHA, OTP, login, rate limits, or portal anti-automation restrictions.
+- Never auto-submit a form. The operator remains responsible for reviewing and submitting.
 
-## Open in Android Studio
+## Build
 
-Clone this repository and open the project folder in Android Studio. Use JDK 17 and allow Gradle sync. The project currently uses Gradle 8.9 with Android Gradle Plugin 8.7.3.
-
-The debug APK build can also be run from a machine with Gradle 8.9 and Android SDK 35 installed:
-
-```bash
-gradle :app:assembleDebug
-```
-
-> Build status is not considered verified until the GitHub Actions workflow completes successfully.
+Android debug APK is built by GitHub Actions on pushes and manual workflow dispatch. The desktop extension is loaded directly in Chrome and does not require a build step.
