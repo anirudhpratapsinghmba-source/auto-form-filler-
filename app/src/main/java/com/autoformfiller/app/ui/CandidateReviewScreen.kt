@@ -26,13 +26,12 @@ fun CandidateReviewScreen(modifier: Modifier = Modifier, onSave: (Profile) -> Un
     val confirmed = remember { mutableStateMapOf<String, Boolean>() }
     val conflicts = remember { mutableStateMapOf<String, String>() }
     var rawText by remember { mutableStateOf("") }
-    var sourceDocumentId by remember { mutableStateOf<String?>(null) }
+    val sourceIds = remember { mutableStateMapOf<String, String>() }
     var status by remember { mutableStateOf("Choose a PDF or document image. Processing stays on this device.") }
     var busy by remember { mutableStateOf(false) }
 
     fun acceptOcrText(text: String, documentId: String) {
         rawText = text
-        sourceDocumentId = documentId
         val extracted = CandidateTextParser.parse(text)
         var conflictCount = 0
         extracted.forEach { (key, value) ->
@@ -42,6 +41,7 @@ fun CandidateReviewScreen(modifier: Modifier = Modifier, onSave: (Profile) -> Un
                 conflictCount++
             } else {
                 values[key] = value
+                sourceIds[key] = documentId
                 conflicts.remove(key)
                 confirmed[key] = false
             }
@@ -109,7 +109,7 @@ fun CandidateReviewScreen(modifier: Modifier = Modifier, onSave: (Profile) -> Un
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 OutlinedTextField(
                     value = value,
-                    onValueChange = { values[field.key] = it },
+                    onValueChange = { edited -> values[field.key] = edited; conflicts.remove(field.key); confirmed[field.key] = false },
                     label = { Text(field.displayName) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = field != CandidateField.ADDRESS_LINE
@@ -153,7 +153,7 @@ fun CandidateReviewScreen(modifier: Modifier = Modifier, onSave: (Profile) -> Un
                     if (value.isBlank()) null else field.key to CandidateFieldValue(
                         field = field,
                         value = value,
-                        sourceDocumentId = sourceDocumentId,
+                        sourceDocumentId = sourceIds[field.key],
                         confidence = null,
                         status = if (confirmed[field.key] == true) {
                             FieldVerificationStatus.OPERATOR_CONFIRMED
