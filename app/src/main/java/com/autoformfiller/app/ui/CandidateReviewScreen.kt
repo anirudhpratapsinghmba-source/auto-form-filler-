@@ -26,7 +26,7 @@ fun CandidateReviewScreen(modifier: Modifier = Modifier, onSave: (Profile) -> Un
     var email by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
     var rawText by remember { mutableStateOf("") }
-    var status by remember { mutableStateOf("Choose a document image to extract text on this device.") }
+    var status by remember { mutableStateOf("Choose a PDF or document image. Processing stays on this device.") }
     var busy by remember { mutableStateOf(false) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
@@ -51,12 +51,38 @@ fun CandidateReviewScreen(modifier: Modifier = Modifier, onSave: (Profile) -> Un
         }
     }
 
+    val pdfPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            busy = true
+            status = "Reading PDF locally…"
+            DocumentOcr.readPdf(context, uri) { result ->
+                busy = false
+                result.onSuccess { text ->
+                    rawText = text
+                    val parsed = CandidateTextParser.parse(text)
+                    fullName = parsed.name.ifBlank { fullName }
+                    dob = parsed.dob.ifBlank { dob }
+                    fatherName = parsed.father.ifBlank { fatherName }
+                    mobile = parsed.mobile.ifBlank { mobile }
+                    email = parsed.email.ifBlank { email }
+                    address = parsed.address.ifBlank { address }
+                    status = if (text.isBlank()) "No text detected. This may be a scanned PDF with low image quality." else "PDF text extracted. Please verify every field against the original."
+                }.onFailure {
+                    status = "Could not read this PDF. Try a smaller, non-password-protected PDF."
+                }
+            }
+        }
+    }
+
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("DOCUMENT IMPORT", color = MaterialTheme.colorScheme.primary, fontSize = 11.sp)
         Text("Select → Extract → Review", style = MaterialTheme.typography.headlineMedium)
-        Text("Choose a document photo from this device. OCR runs on-device; no image is uploaded.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Button(onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
-            Text(if (busy) "Reading…" else "Choose document image")
+        Text("Import a PDF or JPG/PNG image. OCR runs on-device; documents are not uploaded.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Button(onClick = { pdfPicker.launch(arrayOf("application/pdf")) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+            Text("Choose PDF document")
+        }
+        OutlinedButton(onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+            Text("Choose image (JPG / PNG)")
         }
         Text(status, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
         HorizontalDivider()
