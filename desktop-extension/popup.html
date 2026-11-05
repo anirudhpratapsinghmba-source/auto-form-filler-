@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CSC Smart Form Filler</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <header><span class="eyebrow">CSC OPERATOR TOOL</span><h1>Candidate review</h1><p>Review details, then fill supported fields on the current page.</p></header>
+    <button id="scan" class="secondary">Detect form fields</button>
+    <p id="pageStatus" role="status">No page scan yet.</p>
+    <section id="detected" class="detected" aria-live="polite"></section>
+    <form id="candidate">
+      <label>Full name<input name="fullName" autocomplete="off"></label>
+      <label>Date of birth<input name="dob" placeholder="DD/MM/YYYY" autocomplete="off"></label>
+      <label>Father's name<input name="fatherName" autocomplete="off"></label>
+      <label>Mobile<input name="mobile" inputmode="numeric" autocomplete="off"></label>
+      <label>Email<input name="email" autocomplete="off"></label>
+      <label>Address<textarea name="address" rows="2"></textarea></label>
+      <p class="notice">Check every value against the candidate's documents. This extension does not bypass CAPTCHA, OTP, login, or portal security controls and never submits the form.</p>
+      <button id="fill" type="submit">Fill reviewed fields</button>
+    </form>
+    <footer>Local popup session · No candidate data is uploaded</footer>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>
