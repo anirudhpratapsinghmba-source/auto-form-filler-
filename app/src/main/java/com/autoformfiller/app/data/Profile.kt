@@ -12,5 +12,7 @@ data class Profile(
     val fatherName: String = "",
     val mobile: String = "",
     val email: String = "",
-    val address: String = ""
+    val address: String = "",
+    /** Additional exam/document fields keyed by CandidateField.key. */
+    val candidateFields: Map<String, CandidateFieldValue> = emptyMap()
 )
