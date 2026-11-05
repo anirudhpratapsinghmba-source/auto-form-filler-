@@ -8,19 +8,24 @@
 </head>
 <body>
   <main>
-    <header><span class="eyebrow">CSC OPERATOR TOOL</span><h1>Candidate review</h1><p>Review details, then fill supported fields on the current page.</p></header>
-    <button id="scan" class="secondary">Detect form fields</button>
-    <p id="pageStatus" role="status">No page scan yet.</p>
-    <section id="detected" class="detected" aria-live="polite"></section>
+    <header><span class="eyebrow">CSC OPERATOR TOOL</span><h1>Smart form review</h1><p>Detect visible fields, identify required inputs, review candidate data and fill supported matches.</p></header>
+    <button id="scan" class="secondary" type="button">Scan / refresh current form</button>
+    <p id="pageStatus" role="status">Scanning current page…</p>
+    <section class="scanCard">
+      <strong id="scanSummary">Waiting for scan…</strong>
+      <div id="detected" class="detected" aria-live="polite"></div>
+      <p id="requiredWarning" class="requiredWarning"></p>
+    </section>
     <form id="candidate">
+      <h2>Candidate information</h2>
       <label>Full name<input name="fullName" autocomplete="off"></label>
       <label>Date of birth<input name="dob" placeholder="DD/MM/YYYY" autocomplete="off"></label>
       <label>Father's name<input name="fatherName" autocomplete="off"></label>
       <label>Mobile<input name="mobile" inputmode="numeric" autocomplete="off"></label>
       <label>Email<input name="email" autocomplete="off"></label>
       <label>Address<textarea name="address" rows="2"></textarea></label>
-      <p class="notice">Check every value against the candidate's documents. This extension does not bypass CAPTCHA, OTP, login, or portal security controls and never submits the form.</p>
-      <button id="fill" type="submit">Fill reviewed fields</button>
+      <p class="notice">Required fields are detected from page labels and HTML rules where available. Unknown or portal-specific questions must be supplied and checked by the operator. CAPTCHA, OTP, login and security checks stay manual. This tool never submits a form.</p>
+      <button id="fill" type="submit">Verify & fill matched fields</button>
     </form>
     <footer>Local popup session · No candidate data is uploaded</footer>
   </main>
