@@ -4,12 +4,38 @@ let lastScan = [];
 
 const FIELD_RULES = [
   { key: "fullName", label: "Full name", pattern: /full.?name|applicant.?name|candidate.?name|student.?name|पूरा नाम|आवेदक का नाम|अभ्यर्थी का नाम|^name$/ },
-  { key: "dob", label: "Date of birth", pattern: /date.?of.?birth|\bdob\b|birth.?date|जन्म.?तिथि|जन्मतिथि/ },
+  { key: "dateOfBirth", label: "Date of birth", pattern: /date.?of.?birth|\\bdob\\b|birth.?date|जन्म.?तिथि|जन्मतिथि/ },
   { key: "fatherName", label: "Father's name", pattern: /father|पिता|अभिभावक/ },
+  { key: "motherName", label: "Mother's name", pattern: /mother|माता/ },
   { key: "mobile", label: "Mobile", pattern: /mobile|phone|contact.?number|मोबाइल|दूरभाष/ },
   { key: "email", label: "Email", pattern: /e.?mail|ई.?मेल/ },
-  { key: "address", label: "Address", pattern: /address|residential|पता|निवास/ }
+  { key: "addressLine", label: "Address", pattern: /address|residential|पता|निवास/ },
+  { key: "gender", label: "Gender", pattern: /gender|sex|लिंग/ },
+  { key: "category", label: "Category", pattern: /category|reservation|वर्ग|श्रेणी/ },
+  { key: "nationality", label: "Nationality", pattern: /nationality|राष्ट्रीयता/ },
+  { key: "maritalStatus", label: "Marital status", pattern: /marital|वैवाहिक/ },
+  { key: "state", label: "State", pattern: /state|राज्य/ },
+  { key: "district", label: "District", pattern: /district|जिला/ },
+  { key: "pinCode", label: "PIN code", pattern: /pin.?code|postal.?code|पिन/ },
+  { key: "domicileState", label: "Domicile state", pattern: /domicile|मूल.?निवास/ },
+  { key: "disabilityStatus", label: "Disability status", pattern: /disability|दिव्यांग/ },
+  { key: "disabilityPercentage", label: "Disability percentage", pattern: /disability.?percentage|दिव्यांगता.?प्रतिशत/ },
+  { key: "board10th", label: "10th board", pattern: /10(th)?.?(board|school)|matric.?board/ },
+  { key: "roll10th", label: "10th roll number", pattern: /10(th)?.?roll|matric.?roll/ },
+  { key: "passingYear10th", label: "10th passing year", pattern: /10(th)?.?(passing|pass).?year|matric.?year/ },
+  { key: "marks10th", label: "10th marks", pattern: /10(th)?.?marks|secondary.?marks/ },
+  { key: "board12th", label: "12th board", pattern: /12(th)?.?(board|school)|senior.?secondary.?board/ },
+  { key: "roll12th", label: "12th roll number", pattern: /12(th)?.?roll/ },
+  { key: "passingYear12th", label: "12th passing year", pattern: /12(th)?.?(passing|pass).?year/ },
+  { key: "stream12th", label: "12th stream", pattern: /12(th)?.?stream|subject.?stream/ },
+  { key: "marks12th", label: "12th marks", pattern: /12(th)?.?marks|senior.?secondary.?marks/ },
+  { key: "graduationUniversity", label: "Graduation university", pattern: /university|विश्वविद्यालय/ },
+  { key: "graduationCourse", label: "Graduation course", pattern: /graduation.?course|degree|qualification/ },
+  { key: "graduationPassingYear", label: "Graduation passing year", pattern: /graduation.?passing.?year|degree.?passing.?year/ },
+  { key: "graduationPercentage", label: "Graduation percentage", pattern: /graduation.?percentage|degree.?marks|cgpa/ }
 ];
+let importedProfile = null;
+let selectedImported = Object.create(null);
 
 async function getActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -88,8 +114,102 @@ async function scan() {
 }
 
 function candidateValues() {
-  return Object.fromEntries(new FormData($("candidate")).entries());
+  const manual = Object.fromEntries(new FormData($("candidate")).entries());
+  const values = { ...selectedImported };
+  const manualMap = { fullName: "fullName", dob: "dateOfBirth", fatherName: "fatherName", mobile: "mobile", email: "email", address: "addressLine" };
+  for (const [inputKey, fieldKey] of Object.entries(manualMap)) {
+    const value = String(manual[inputKey] || "").trim();
+    if (value) values[fieldKey] = value;
+  }
+  return values;
 }
+
+function decodeBase64Url(value) {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const binary = atob(normalized + "=".repeat((4 - normalized.length % 4) % 4));
+  return Uint8Array.from(binary, ch => ch.charCodeAt(0));
+}
+
+async function decryptProfilePackage(file, passphrase) {
+  if (file.size > 2 * 1024 * 1024) throw new Error("Profile file is unexpectedly large.");
+  const envelope = JSON.parse(await file.text());
+  if (envelope.format !== "csc-smart-profile" || envelope.version !== 1 ||
+      envelope.kdf !== "PBKDF2-HMAC-SHA256" || envelope.cipher !== "AES-256-GCM" ||
+      envelope.iterations !== 310000) throw new Error("Unsupported or invalid encrypted profile format.");
+  const material = await crypto.subtle.importKey("raw", new TextEncoder().encode(passphrase), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt: decodeBase64Url(envelope.salt), iterations: envelope.iterations, hash: "SHA-256" },
+    material, { name: "AES-GCM", length: 256 }, false, ["decrypt"]
+  );
+  let plaintext;
+  try {
+    plaintext = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: decodeBase64Url(envelope.iv), tagLength: 128 },
+      key, decodeBase64Url(envelope.ciphertext)
+    );
+  } catch (_) {
+    throw new Error("Could not decrypt. Check the passphrase and selected file.");
+  }
+  const payload = JSON.parse(new TextDecoder().decode(plaintext));
+  if (payload.format !== "csc-smart-profile" || payload.version !== 1 || !Array.isArray(payload.fields)) {
+    throw new Error("The decrypted file is not a supported candidate profile.");
+  }
+  return payload;
+}
+
+function renderImportedProfile(payload) {
+  importedProfile = payload;
+  selectedImported = Object.create(null);
+  $("profileName").textContent = payload.profileName || "Candidate";
+  $("importedFields").replaceChildren();
+  let usable = 0;
+  payload.fields.forEach(item => {
+    if (!item || typeof item.key !== "string" || typeof item.value !== "string" || !item.value.trim() || item.sensitive) return;
+    const rule = FIELD_RULES.find(entry => entry.key === item.key);
+    const row = document.createElement("label");
+    row.className = "importedField";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) selectedImported[item.key] = item.value;
+      else delete selectedImported[item.key];
+    });
+    const details = document.createElement("span");
+    const title = document.createElement("strong");
+    title.textContent = item.label || rule?.label || item.key;
+    const value = document.createElement("small");
+    value.textContent = item.value;
+    const state = document.createElement("small");
+    state.className = "fieldStatus";
+    state.textContent = item.status === "OPERATOR_CONFIRMED" ? "Previously confirmed · verify again" : "Unverified · check original document";
+    details.append(title, value, state);
+    row.append(checkbox, details);
+    $("importedFields").appendChild(row);
+    usable++;
+  });
+  $("importedSection").hidden = false;
+  $("profileStatus").textContent = usable
+    ? usable + " non-sensitive fields decrypted. Select only values checked against original documents."
+    : "Profile decrypted, but no supported non-sensitive fields were found.";
+}
+
+$("importProfile").addEventListener("click", async () => {
+  const file = $("profileFile").files?.[0];
+  const passphraseInput = $("profilePassphrase");
+  $("profileStatus").textContent = "Decrypting locally…";
+  try {
+    if (!file || !passphraseInput.value) throw new Error("Choose the encrypted profile and enter its passphrase.");
+    const payload = await decryptProfilePackage(file, passphraseInput.value);
+    renderImportedProfile(payload);
+  } catch (error) {
+    $("profileStatus").textContent = error.message || "Could not import this profile.";
+    importedProfile = null;
+    selectedImported = Object.create(null);
+    $("importedSection").hidden = true;
+  } finally {
+    passphraseInput.value = "";
+  }
+});
 
 function validateValue(rule, value, field) {
   if (!value) return "No candidate value supplied";
