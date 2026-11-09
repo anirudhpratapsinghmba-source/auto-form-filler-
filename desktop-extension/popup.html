@@ -8,26 +8,50 @@
 </head>
 <body>
   <main>
-    <header><span class="eyebrow">CSC OPERATOR TOOL</span><h1>Smart form review</h1><p>Detect visible fields, identify required inputs, review candidate data and fill supported matches.</p></header>
-    <button id="scan" class="secondary" type="button">Scan / refresh current form</button>
-    <p id="pageStatus" role="status">Scanning current page…</p>
+    <header>
+      <span class="eyebrow">CSC OPERATOR TOOL</span>
+      <h1>Smart form review</h1>
+      <p>Import an encrypted candidate profile, approve the fields, then fill supported portal inputs.</p>
+    </header>
+
+    <section class="importCard">
+      <h2>1. Import candidate profile</h2>
+      <label>Encrypted profile file (.cscprofile)<input id="profileFile" type="file" accept=".cscprofile,.json,application/json"></label>
+      <label>Export passphrase<input id="profilePassphrase" type="password" autocomplete="new-password" maxlength="128" placeholder="Enter the passphrase used on Android"></label>
+      <button id="importProfile" type="button">Decrypt & import profile</button>
+      <p class="privacy">Decryption happens inside this extension popup. The passphrase and candidate details are not saved to extension storage or sent to a server.</p>
+      <div id="profileStatus" role="status"></div>
+    </section>
+
+    <section id="importedSection" class="importedSection" hidden>
+      <div class="sectionHeading">
+        <h2>2. Review candidate details</h2>
+        <span id="profileName" class="profileName"></span>
+      </div>
+      <p class="hint">Select each value only after checking it against the original document. Sensitive identity/certificate numbers are not autofilled.</p>
+      <div id="importedFields" class="importedFields"></div>
+    </section>
+
+    <button id="scan" class="secondary" type="button">3. Scan / refresh current form</button>
+    <p id="pageStatus" role="status">Open a supported exam form in the active browser tab.</p>
     <section class="scanCard">
       <strong id="scanSummary">Waiting for scan…</strong>
       <div id="detected" class="detected" aria-live="polite"></div>
       <p id="requiredWarning" class="requiredWarning"></p>
     </section>
+
     <form id="candidate">
-      <h2>Candidate information</h2>
+      <h2>Optional manual corrections</h2>
       <label>Full name<input name="fullName" autocomplete="off"></label>
       <label>Date of birth<input name="dob" placeholder="DD/MM/YYYY" autocomplete="off"></label>
       <label>Father's name<input name="fatherName" autocomplete="off"></label>
       <label>Mobile<input name="mobile" inputmode="numeric" autocomplete="off"></label>
       <label>Email<input name="email" autocomplete="off"></label>
       <label>Address<textarea name="address" rows="2"></textarea></label>
-      <p class="notice">Required fields are detected from page labels and HTML rules where available. Unknown or portal-specific questions must be supplied and checked by the operator. CAPTCHA, OTP, login and security checks stay manual. This tool never submits a form.</p>
-      <button id="fill" type="submit">Verify & fill matched fields</button>
+      <p class="notice">Only checked imported fields and manually entered values are considered. Required portal fields are checked where the webpage exposes them. CAPTCHA, OTP, login, password, payment, declarations and final submission remain manual. This extension never submits a form.</p>
+      <button id="fill" type="submit">4. Review & fill selected fields</button>
     </form>
-    <footer>Local popup session · No candidate data is uploaded</footer>
+    <footer>Session-only import · No cloud sync · No auto-submit</footer>
   </main>
   <script src="popup.js"></script>
 </body>
