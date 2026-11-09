@@ -65,7 +65,9 @@ async function inspectPage() {
           ].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
           const required = el.required || el.getAttribute("aria-required") === "true" || el.getAttribute("data-required") === "true";
           return {
-            index, label: label || "Unlabelled field", type: el.tagName.toLowerCase() === "select" ? "select" : (el.type || el.tagName.toLowerCase()),
+            index, label: label || "Unlabelled field",
+            id: el.id || "", name: el.getAttribute("name") || "",
+            type: el.tagName.toLowerCase() === "select" ? "select" : (el.type || el.tagName.toLowerCase()),
             required, pattern: el.getAttribute("pattern") || "", maxLength: el.maxLength > 0 ? el.maxLength : null,
             minLength: el.minLength > 0 ? el.minLength : null, autocomplete: el.getAttribute("autocomplete") || "",
             options: el.tagName.toLowerCase() === "select" ? Array.from(el.options).filter(o => o.value).map(o => o.text.trim()).slice(0, 30) : []
@@ -244,7 +246,11 @@ $("candidate").addEventListener("submit", async (event) => {
       }
       const problem = validateValue(item.rule, value, item.field);
       if (problem) { invalid.push(item.field.label + ": " + problem); continue; }
-      plan.push({ index: item.field.index, key: item.rule.key, value, type: item.field.type, options: item.field.options });
+      plan.push({
+        index: item.field.index, key: item.rule.key, value, type: item.field.type,
+        expected: { label: item.field.label, id: item.field.id, name: item.field.name },
+        options: item.field.options
+      });
     }
     if (missingRequired.length || invalid.length) {
       $("pageStatus").textContent = [
@@ -271,7 +277,20 @@ $("candidate").addEventListener("submit", async (event) => {
         const skipped = [];
         for (const item of fillPlan) {
           const el = visibleFields[item.index];
-          if (!el || el.disabled) { skipped.push(item.key); continue; }
+          if (!el || el.disabled) { skipped.push(item.key + " (field no longer exists)"); continue; }
+          const liveLabel = [
+            el.labels ? Array.from(el.labels).map(x => x.innerText).join(" ") : "",
+            el.getAttribute("aria-label"),
+            el.getAttribute("aria-labelledby") ? document.getElementById(el.getAttribute("aria-labelledby"))?.innerText : "",
+            el.getAttribute("placeholder"), el.getAttribute("name"), el.id,
+            el.getAttribute("autocomplete")
+          ].filter(Boolean).join(" ").replace(/\\s+/g, " ").trim() || "Unlabelled field";
+          if (liveLabel !== item.expected.label ||
+              (el.id || "") !== item.expected.id ||
+              (el.getAttribute("name") || "") !== item.expected.name) {
+            skipped.push(item.key + " (page changed; scan again)");
+            continue;
+          }
           if (el.tagName.toLowerCase() === "select") {
             const target = item.value.toLowerCase().trim();
             const option = Array.from(el.options).find(o =>
