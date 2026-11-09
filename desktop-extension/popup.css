@@ -1,1 +1,18 @@
 *{box-sizing:border-box}body{margin:0;width:380px;background:#f4f7fb;color:#15213b;font:14px system-ui,sans-serif}main{padding:17px}.eyebrow{color:#2563eb;font-size:10px;font-weight:800;letter-spacing:1.6px}h1{font-size:22px;margin:5px 0}h2{font-size:14px;margin:5px 0}header p,#pageStatus{color:#64748b;font-size:12px;line-height:1.5}.scanCard{background:#fff;border:1px solid #dfe6f0;border-radius:12px;padding:11px;margin:10px 0}.scanCard strong{font-size:12px}.detected{font-size:11px;color:#334155;margin:6px 0;max-height:150px;overflow:auto}.detected ul{padding-left:18px;margin:4px 0}.detected li{margin:3px 0}.requiredWarning{font-size:11px;color:#9a5a00;background:#fff7e6;padding:8px;border-radius:8px;margin:5px 0 0}form{display:grid;gap:8px}label{display:grid;gap:4px;font-size:12px;font-weight:650}input,textarea{width:100%;border:1px solid #d6deea;border-radius:9px;padding:9px;background:white;font:14px system-ui;color:#14213d}button{border:0;border-radius:10px;padding:11px 13px;background:#2563eb;color:white;font-weight:700;cursor:pointer}.secondary{background:#e7efff;color:#1d4ed8;width:100%}.notice{font-size:10px;line-height:1.5;color:#92400e;background:#fff7e6;padding:9px;border-radius:8px;margin:2px 0}footer{text-align:center;color:#64748b;font-size:10px;margin-top:13px}
+
+.importCard,.importedSection{background:#fff;border:1px solid #dfe6f0;border-radius:12px;padding:12px;margin:12px 0}
+.importCard label{margin:9px 0}
+.importCard input[type=file]{font-size:11px}
+.privacy,.hint{font-size:10px;line-height:1.5;color:#64748b}
+#importedFields{display:grid;gap:7px;max-height:210px;overflow:auto}
+.importedField{display:flex;grid-template-columns:auto 1fr;align-items:flex-start;gap:9px;padding:8px;border:1px solid #e5eaf2;border-radius:8px;font-weight:400}
+.importedField input{width:auto;margin-top:3px}
+.importedField span{display:grid;gap:3px;min-width:0}
+.importedField strong{font-size:11px}
+.importedField small{font-size:11px;overflow-wrap:anywhere;color:#334155}
+.importedField .fieldStatus{font-size:9px;color:#9a5a00}
+.sectionHeading{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.profileName{font-size:10px;color:#2563eb;font-weight:700;max-width:130px;overflow-wrap:anywhere}
+#importProfile{width:100%}
+#profileStatus{font-size:11px;color:#166534;margin-top:7px}
+[hidden]{display:none!important}
