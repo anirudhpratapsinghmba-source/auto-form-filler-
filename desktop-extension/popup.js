@@ -252,7 +252,7 @@ $("candidate").addEventListener("submit", async (event) => {
       const problem = validateValue(item.rule, value, item.field);
       if (problem) { invalid.push(item.field.label + ": " + problem); continue; }
       plan.push({
-        index: item.field.index, key: item.rule.key, value, type: item.field.type,
+        key: item.rule.key, value, type: item.field.type,
         expected: { label: item.field.label, id: item.field.id, name: item.field.name },
         options: item.field.options
       });
@@ -281,21 +281,24 @@ $("candidate").addEventListener("submit", async (event) => {
         let filled = 0;
         const skipped = [];
         for (const item of fillPlan) {
-          const el = visibleFields[item.index];
-          if (!el || el.disabled) { skipped.push(item.key + " (field no longer exists)"); continue; }
-          const liveLabel = [
-            el.labels ? Array.from(el.labels).map(x => x.innerText).join(" ") : "",
-            el.getAttribute("aria-label"),
-            el.getAttribute("aria-labelledby") ? document.getElementById(el.getAttribute("aria-labelledby"))?.innerText : "",
-            el.getAttribute("placeholder"), el.getAttribute("name"), el.id,
-            el.getAttribute("autocomplete")
-          ].filter(Boolean).join(" ").replace(/\\s+/g, " ").trim() || "Unlabelled field";
-          if (liveLabel !== item.expected.label ||
-              (el.id || "") !== item.expected.id ||
-              (el.getAttribute("name") || "") !== item.expected.name) {
-            skipped.push(item.key + " (page changed; scan again)");
+          const matches = visibleFields.filter(candidate => {
+            const candidateLabel = [
+              candidate.labels ? Array.from(candidate.labels).map(x => x.innerText).join(" ") : "",
+              candidate.getAttribute("aria-label"),
+              candidate.getAttribute("aria-labelledby") ? document.getElementById(candidate.getAttribute("aria-labelledby"))?.innerText : "",
+              candidate.getAttribute("placeholder"), candidate.getAttribute("name"), candidate.id,
+              candidate.getAttribute("autocomplete")
+            ].filter(Boolean).join(" ").replace(/\\s+/g, " ").trim() || "Unlabelled field";
+            return candidateLabel === item.expected.label &&
+              (candidate.id || "") === item.expected.id &&
+              (candidate.getAttribute("name") || "") === item.expected.name;
+          });
+          if (matches.length !== 1) {
+            skipped.push(item.key + " (field is missing or ambiguous; scan again)");
             continue;
           }
+          const el = matches[0];
+          if (el.disabled) { skipped.push(item.key + " (field is disabled)"); continue; }
           if (el.tagName.toLowerCase() === "select") {
             const target = item.value.toLowerCase().trim();
             const option = Array.from(el.options).find(o =>
