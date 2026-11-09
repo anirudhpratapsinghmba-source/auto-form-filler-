@@ -288,7 +288,7 @@ $("candidate").addEventListener("submit", async (event) => {
               candidate.getAttribute("aria-labelledby") ? document.getElementById(candidate.getAttribute("aria-labelledby"))?.innerText : "",
               candidate.getAttribute("placeholder"), candidate.getAttribute("name"), candidate.id,
               candidate.getAttribute("autocomplete")
-            ].filter(Boolean).join(" ").replace(/\\s+/g, " ").trim() || "Unlabelled field";
+            ].filter(Boolean).join(" ").replace(/\s+/g, " ").trim() || "Unlabelled field";
             return candidateLabel === item.expected.label &&
               (candidate.id || "") === item.expected.id &&
               (candidate.getAttribute("name") || "") === item.expected.name;
