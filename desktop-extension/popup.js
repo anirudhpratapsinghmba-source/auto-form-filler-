@@ -201,6 +201,9 @@ $("importProfile").addEventListener("click", async () => {
   $("profileStatus").textContent = "Decrypting locally…";
   try {
     if (!file || !passphraseInput.value) throw new Error("Choose the encrypted profile and enter its passphrase.");
+    if (passphraseInput.value.length < 12 || passphraseInput.value.length > 128) {
+      throw new Error("Passphrase must be between 12 and 128 characters.");
+    }
     const payload = await decryptProfilePackage(file, passphraseInput.value);
     renderImportedProfile(payload);
   } catch (error) {
@@ -236,7 +239,9 @@ $("candidate").addEventListener("submit", async (event) => {
     const values = candidateValues();
     const mapping = lastScan.map(field => ({ field, rule: matchRule(field) })).filter(x => x.rule);
     const plan = [];
-    const missingRequired = [];
+    const missingRequired = lastScan
+      .filter(field => field.required && !matchRule(field))
+      .map(field => field.label + " (manual mapping required)");
     const invalid = [];
     for (const item of mapping) {
       const value = String(values[item.rule.key] || "").trim();
