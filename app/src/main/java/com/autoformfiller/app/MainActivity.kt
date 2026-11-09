@@ -1,6 +1,9 @@
 package com.autoformfiller.app
 
 import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -29,7 +32,10 @@ import com.autoformfiller.app.data.AppDatabase
 import com.autoformfiller.app.data.Profile
 import com.autoformfiller.app.data.ProfileRepository
 import com.autoformfiller.app.ui.CandidateReviewScreen
+import com.autoformfiller.app.security.EncryptedProfilePackage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 private val Ink = Color(0xFF14213D)
@@ -52,6 +58,37 @@ private fun AutoFormFillerApp() {
     var selectedTab by remember { mutableIntStateOf(0) }
     var showEditor by remember { mutableStateOf(false) }
     var editingProfile by remember { mutableStateOf<Profile?>(null) }
+    var exportTarget by remember { mutableStateOf<Profile?>(null) }
+    var exportPassphrase by remember { mutableStateOf<CharArray?>(null) }
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        val target = exportTarget
+        val password = exportPassphrase
+        if (uri != null && target != null && password != null) {
+            scope.launch {
+                try {
+                    val encrypted = withContext(Dispatchers.Default) {
+                        EncryptedProfilePackage.encrypt(target, password)
+                    }
+                    withContext(Dispatchers.IO) {
+                        val stream = context.contentResolver.openOutputStream(uri, "w")
+                            ?: error("Could not create the export file.")
+                        stream.bufferedWriter(Charsets.UTF_8).use { it.write(encrypted) }
+                    }
+                    Toast.makeText(context, "Encrypted profile exported. Import it in the Chrome extension.", Toast.LENGTH_LONG).show()
+                } catch (error: Exception) {
+                    Toast.makeText(context, error.message ?: "Profile export failed.", Toast.LENGTH_LONG).show()
+                } finally {
+                    password.fill('\u0000')
+                    exportTarget = null
+                    exportPassphrase = null
+                }
+            }
+        } else {
+            password?.fill('\u0000')
+            exportTarget = null
+            exportPassphrase = null
+        }
+    }
 
     MaterialTheme(colorScheme = lightColorScheme(primary = Accent, background = Canvas)) {
         Scaffold(
@@ -76,7 +113,8 @@ private fun AutoFormFillerApp() {
                     modifier = Modifier.padding(padding),
                     onAdd = { editingProfile = null; showEditor = true },
                     onEdit = { editingProfile = it; showEditor = true },
-                    onDelete = { profile -> scope.launch { repository.delete(profile.id) } }
+                    onDelete = { profile -> scope.launch { repository.delete(profile.id) } },
+                    onExport = { profile -> exportTarget = profile }
                 )
                 1 -> FeaturePlaceholder("Smart Keyboard", "Android keyboard insertion is the next Android milestone. It will insert only the candidate field you choose into supported fields; no clipboard dependency and no keystroke logging.", Modifier.padding(padding))
                 else -> CandidateReviewScreen(
@@ -84,6 +122,17 @@ private fun AutoFormFillerApp() {
                     onSave = { profile -> scope.launch { repository.save(profile) }; selectedTab = 0 }
                 )
             }
+        }
+        exportTarget?.let { target ->
+            ExportProfileDialog(
+                profile = target,
+                onDismiss = { exportTarget = null },
+                onExport = { phrase ->
+                    exportPassphrase = phrase.toCharArray()
+                    val safeName = target.profileName.replace(Regex("[^A-Za-z0-9_-]"), "_").take(40).ifBlank { "candidate" }
+                    exportLauncher.launch("$safeName.cscprofile")
+                }
+            )
         }
         if (showEditor) {
             ProfileEditorDialog(
@@ -101,7 +150,8 @@ private fun ProfilesScreen(
     modifier: Modifier = Modifier,
     onAdd: () -> Unit,
     onEdit: (Profile) -> Unit,
-    onDelete: (Profile) -> Unit
+    onDelete: (Profile) -> Unit,
+    onExport: (Profile) -> Unit
 ) {
     LazyColumn(
         modifier.fillMaxSize().padding(horizontal = 20.dp),
@@ -161,6 +211,7 @@ private fun ProfilesScreen(
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                        TextButton(onClick = { onExport(profile) }) { Text("Export") }
                         TextButton(onClick = { onEdit(profile) }) { Icon(Icons.Default.Edit, null); Spacer(Modifier.width(4.dp)); Text("Edit") }
                         TextButton(onClick = { onDelete(profile) }, colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFB42318))) {
                             Icon(Icons.Default.Delete, null); Spacer(Modifier.width(4.dp)); Text("Delete")
@@ -172,6 +223,42 @@ private fun ProfilesScreen(
         item { OutlinedButton(onClick = onAdd, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text("Add candidate manually") } }
         item { Text("Candidate data is stored locally. Review every field before using it on a portal.", color = Color(0xFF64748B), fontSize = 11.sp) }
     }
+}
+
+
+@Composable
+private fun ExportProfileDialog(
+    profile: Profile,
+    onDismiss: () -> Unit,
+    onExport: (String) -> Unit
+) {
+    var passphrase by remember(profile.id) { mutableStateOf("") }
+    var confirmation by remember(profile.id) { mutableStateOf("") }
+    var error by remember(profile.id) { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Export encrypted profile") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                Text("Create a passphrase of at least 12 characters. You must enter the same passphrase in the Chrome extension. It is not saved by the app.", fontSize = 12.sp)
+                OutlinedTextField(value = passphrase, onValueChange = { passphrase = it; error = "" }, label = { Text("Export passphrase") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = confirmation, onValueChange = { confirmation = it; error = "" }, label = { Text("Confirm passphrase") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                Text("The exported file contains personal candidate data. Keep it private and delete it after importing on the CSC computer.", color = Color(0xFF9A5A00), fontSize = 11.sp)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                when {
+                    passphrase.length < 12 -> error = "Passphrase must be at least 12 characters."
+                    passphrase.length > 128 -> error = "Passphrase must be 128 characters or fewer."
+                    passphrase != confirmation -> error = "Passphrases do not match."
+                    else -> onExport(passphrase)
+                }
+            }) { Text("Choose export location") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
 
 @Composable
