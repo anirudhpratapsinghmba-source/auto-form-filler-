@@ -23,6 +23,10 @@ import java.util.concurrent.Executors
  * to keep memory and processing time bounded. Original documents are not uploaded.
  */
 object DocumentOcr {
+    private const val MAX_PDF_PAGES = 15
+    private const val MAX_BITMAP_PIXELS = 4_000_000L
+    private const val MAX_EXTRACTED_CHARACTERS = 120_000
+
     private val executor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -64,16 +68,21 @@ object DocumentOcr {
                 descriptor.use { pfd ->
                     PdfRenderer(pfd).use { renderer ->
                         require(renderer.pageCount > 0) { "This PDF has no pages." }
-                        val pageCount = minOf(renderer.pageCount, 15)
+                        val pageCount = minOf(renderer.pageCount, MAX_PDF_PAGES)
                         val latin = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
                         val devanagari = TextRecognition.getClient(DevanagariTextRecognizerOptions.Builder().build())
                         try {
                             val output = ArrayList<String>()
                             for (index in 0 until pageCount) {
                                 renderer.openPage(index).use { page ->
-                                    val scale = minOf(2.0, 2200.0 / page.width.coerceAtLeast(1))
-                                    val width = (page.width * scale).toInt().coerceAtLeast(1)
-                                    val height = (page.height * scale).toInt().coerceAtLeast(1)
+                                    val sourceWidth = page.width.coerceAtLeast(1)
+                                    val sourceHeight = page.height.coerceAtLeast(1)
+                                    val pixelBoundScale = kotlin.math.sqrt(
+                                        MAX_BITMAP_PIXELS.toDouble() / (sourceWidth.toDouble() * sourceHeight.toDouble())
+                                    )
+                                    val scale = minOf(2.0, 2200.0 / sourceWidth, pixelBoundScale).coerceAtMost(2.0)
+                                    val width = (sourceWidth * scale).toInt().coerceAtLeast(1)
+                                    val height = (sourceHeight * scale).toInt().coerceAtLeast(1)
                                     val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
                                     try {
                                         Canvas(bitmap).drawColor(Color.WHITE)
@@ -82,14 +91,17 @@ object DocumentOcr {
                                         val latinText = Tasks.await(latin.process(image))
                                         val hindiText = runCatching { Tasks.await(devanagari.process(image)) }.getOrNull()
                                         val pageText = if (hindiText != null) combine(latinText, hindiText) else latinText.text
-                                        if (pageText.isNotBlank()) output.add("PAGE ${index + 1}\n$pageText")
+                                        if (pageText.isNotBlank()) {
+                                            val remaining = MAX_EXTRACTED_CHARACTERS - output.sumOf { it.length }
+                                            if (remaining > 0) output.add("PAGE ${index + 1}\n${pageText.take(remaining)}")
+                                        }
                                     } finally {
                                         bitmap.recycle()
                                     }
                                 }
                             }
-                            val suffix = if (renderer.pageCount > 15) "\n[Only the first 15 pages were processed.]" else ""
-                            output.joinToString("\n\n") + suffix
+                            val suffix = if (renderer.pageCount > MAX_PDF_PAGES) "\n[Only the first $MAX_PDF_PAGES pages were processed.]" else ""
+                            (output.joinToString("\n\n") + suffix).take(MAX_EXTRACTED_CHARACTERS + 200)
                         } finally {
                             latin.close()
                             devanagari.close()
