@@ -4,7 +4,7 @@ let lastScan = [];
 
 const FIELD_RULES = [
   { key: "fullName", label: "Full name", pattern: /full.?name|applicant.?name|candidate.?name|student.?name|पूरा नाम|आवेदक का नाम|अभ्यर्थी का नाम|^name$/ },
-  { key: "dateOfBirth", label: "Date of birth", pattern: /date.?of.?birth|\\bdob\\b|birth.?date|जन्म.?तिथि|जन्मतिथि/ },
+  { key: "dateOfBirth", label: "Date of birth", pattern: /date.?of.?birth|\bdob\b|birth.?date|जन्म.?तिथि|जन्मतिथि/ },
   { key: "fatherName", label: "Father's name", pattern: /father.?name|पिता.?का.?नाम|पिता/ },
   { key: "motherName", label: "Mother's name", pattern: /mother|माता/ },
   { key: "mobile", label: "Mobile", pattern: /mobile|phone|contact.?number|मोबाइल|दूरभाष/ },
